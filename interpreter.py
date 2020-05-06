@@ -45,47 +45,64 @@ def parse(tokens):
 
         if tokens[0][0] == 'ATOM':
             print(tokens[0])
+            value = tokens[0]
             tokens = tokens[1:]
+            return value
         else:
+            children = []
             if tokens[0][0] != 'LPAREN':
                 print("Error: expected '('")
                 sys.exit(0)
 
             print(tokens[0])
+            children.append(tokens[0])
             tokens = tokens[1:]
-            match_kv_list()
+            children.append(match_kv_list())
 
             if tokens[0][0] != 'RPAREN':
                 print("Error: expected ')'")
                 sys.exit(0)
 
             print(tokens[0])
+            children.append(tokens[0])
             tokens = tokens[1:]
+            return children
 
     def match_kv_list():
         nonlocal tokens
         print('matching kv list')
-        match_kv_pair()
+        children = []
+        children.append(match_kv_pair())
 
         if tokens[0][0] == 'COMMA':
             print(tokens[0])
+            children.append(tokens[0])
             tokens = tokens[1:]
-            match_kv_list()
+            children.append(match_kv_list())
+
+        return children
 
     def match_kv_pair():
         print('matching kv pair')
         nonlocal tokens
 
-        match_atom()
+        children = []
+
+        children.append(match_atom())
 
         if tokens[0][0] != 'COLON':
             print("Error: expected ':'")
             sys.exit(0)
 
         print(tokens[0])
+        children.append(tokens[0])
+
         tokens = tokens[1:]
 
-        match_expr()
+        children.append(match_expr())
+
+        # Otherwise, epsilon production
+        return children
                 
     def match_atom():
         print('matching atom')
@@ -93,9 +110,11 @@ def parse(tokens):
 
         if (tokens[0][0] == 'ATOM'):
             print(tokens[0])
+            val = tokens[0]
             tokens = tokens[1:]
+            return val 
 
-    match_expr()
+    return match_expr()
 
 
 test1 = '' \
@@ -105,4 +124,8 @@ test1 = '' \
 
 print(tokenize(test1))
 print('\n\n')
-parse(tokenize(test1))
+
+tree = parse(tokenize(test1))
+print('\n\n')
+
+print(tree)
