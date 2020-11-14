@@ -1,3 +1,7 @@
+'''
+Lexical analysis transforms a stream of characters into a stream
+of tokens.
+'''
 class Token():
     def name(self):
         return None
@@ -14,8 +18,7 @@ class LPAREN(Token):
         return "LPAREN"
 
     def value(self):
-        return "("
-
+        return "(" 
 
 class RPAREN(Token):
     def name(self):
@@ -52,38 +55,47 @@ class ATOM(Token):
         return self.val
 
 
-def tokenize(program):
-    # Remove all whitespace
-    program = ''.join(program.split())
+class EOF(Token):
+    def name(self):
+        return "EOF"
 
-    tokens = []
-    s = ''
+    def value(self):
+        return ""
 
-    while len(program) > 0:
-        s = program[0]
-        program = program[1:]
+
+def tokenize(stream):
+    '''
+    Given an IO stream, yield a stream of tokens.
+    '''
+    s = stream.read(1)
+    while s != '':
+        if s.isspace():
+            s = stream.read(1)
+            continue
 
         reserved = ['(', ')', ':', ',']
 
         if s == '(':
-            tokens.append(LPAREN())
+            yield LPAREN()
 
         elif s == ')':
-            tokens.append(RPAREN())
+            yield RPAREN()
 
         elif s == ':':
-            tokens.append(COLON())
+            yield COLON()
 
         elif s == ',':
-            tokens.append(COMMA())
+            yield COMMA()
 
         else:
-            n = program[0]
+            n = stream.read(1)
             while n not in reserved:
                 s = s + n
-                program = program[1:]
-                n = program[0]
+                n = stream.read(1)
 
-            tokens.append(ATOM(s))
+            yield ATOM(s)
 
-    return tokens
+        s = stream.read(1)
+
+    yield EOF()
+    return
