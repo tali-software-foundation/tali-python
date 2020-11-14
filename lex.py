@@ -2,6 +2,9 @@
 Lexical analysis transforms a stream of characters into a stream
 of tokens.
 '''
+
+import io
+
 class Token():
     def name(self):
         return None
@@ -55,47 +58,40 @@ class ATOM(Token):
         return self.val
 
 
-class EOF(Token):
-    def name(self):
-        return "EOF"
-
-    def value(self):
-        return ""
-
-
-def tokenize(stream):
+def tokenize(cs):
     '''
-    Given an IO stream, yield a stream of tokens.
+    Given a character stream (file), yield a stream of tokens.
     '''
-    s = stream.read(1)
-    while s != '':
-        if s.isspace():
-            s = stream.read(1)
+    c = cs.read(1)
+    while c != '':
+        if c.isspace():
+            c = cs.read(1)
             continue
 
         reserved = ['(', ')', ':', ',']
 
-        if s == '(':
+        if c == '(':
+            c = cs.read(1)
             yield LPAREN()
 
-        elif s == ')':
+        elif c == ')':
+            c = cs.read(1)
             yield RPAREN()
 
-        elif s == ':':
+        elif c == ':':
+            c = cs.read(1)
             yield COLON()
 
-        elif s == ',':
+        elif c == ',':
+            c = cs.read(1)
             yield COMMA()
 
         else:
-            n = stream.read(1)
+            n = cs.read(1)
             while n not in reserved:
-                s = s + n
-                n = stream.read(1)
+                c = c + n
+                cs.read(1)
+            yield ATOM(c)
+            c = n
 
-            yield ATOM(s)
-
-        s = stream.read(1)
-
-    yield EOF()
     return
