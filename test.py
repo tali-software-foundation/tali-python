@@ -10,6 +10,7 @@ test1 = '' \
          'b: 2))'
 
 print(list([x for x in l.tokenize(io.StringIO(test1))]))
+print(p.parse(l.tokenize(io.StringIO(test1))))
 #print('\n\n')
 #
 #tree = p.parse(l.tokenize(test1))

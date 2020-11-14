@@ -1,4 +1,6 @@
 '''
+Parsing transforms a stream of tokens into a stream of parse trees.
+
 Grammar:
 Expr = Atom |
        ( KVList )
@@ -11,92 +13,107 @@ import sys
 
 namespaces = {}
 
-def parse(tokens):
+class Peekable:
+    '''
+    Utility class to facilitate LL(1) parsing, as Python
+    generators don't have any lookahead.
+    '''
+    def __init__(self, iterable):
+        self.iterable = iter(iterable)
+        self.buffer = []
 
-    def match_expr():
-        nonlocal tokens
-        print('matching expression')
+    def __iter__(self):
+        return self
 
-        t = tokens[0]
-
-        if t.name() == 'ATOM':
-            print(t)
-            tokens = tokens[1:]
-            return ('EXPR', t.value())
+    def __next__(self):
+        if self.buffer:
+            return self.buffer.pop(0)
         else:
-            children = []
-            if t.name() != 'LPAREN':
-                print('Error: expected "("')
-                sys.exit(0)
+            return next(self.iterable)
 
-            print(t)
-            children.append(t)
-            tokens = tokens[1:]
-            children.append(match_kv_list())
+    def peek(self):
+        """
+        Peek at the next iterable and buffer it in.
+        """
+        try:
+            self.buffer.append(next(self.iterable))
+        except StopIteration:
+            return None
 
-            t = tokens[0]
+        return self.buffer[0]
 
-            if t.name() != 'RPAREN':
-                print('Error: expected ")"')
-                sys.exit(0)
 
-            print(t)
-            children.append(t)
-            tokens = tokens[1:]
-            return ('EXPR', children)
+def peek(peekable):
+    return peekable.peek()
 
-    def match_kv_list():
-        nonlocal tokens
-        print('matching kv list')
+
+def parse(tokens):
+    '''
+    Transforms a stream of tokens in a stream of parse trees.
+    The parameter 'tokens' should be an iterable.
+    '''
+    # No need for try/except: we'd just re-throw
+    ts = Peekable(tokens)
+    while True:
+        print(match_expr(ts))
+
+
+def match_expr(tokens):
+    t = next(tokens)
+
+    if t.name() == 'ATOM':
+        return ('ATOM', t.value())
+    else:
         children = []
-        children.append(match_kv_pair())
+        children.append(match_lparen(t))
+        children.append(match_kv_list(tokens))
+        children.append(match_rparen(next(tokens)))
+        return ('EXPR', children)
 
-        t = tokens[0]
 
-        if t.name() == 'COMMA':
-            print(t)
-            children.append(t)
-            tokens = tokens[1:]
-            children.append(match_kv_list())
+def match_lparen(token):
+    if token.name() != 'LPAREN':
+        print('Error: expected "("')
+        raise StopIteration
+    return '('
 
-        print('kv list matched')
-        return ('KVL', children)
 
-    def match_kv_pair():
-        print('matching kv pair')
-        nonlocal tokens
+def match_rparen(token):
+    if token.name() != 'RPAREN':
+        print('Error: expected ")"')
+        raise StopIteration
+    return ')'
 
-        children = []
 
-        children.append(match_atom())
+def match_kv_list(tokens):
+    children = []
+    children.append(match_kv_pair(tokens))
 
-        t = tokens[0]
+    t = peek(tokens)
+    if t.name() == 'COMMA':
+        children.append(next(tokens))
+        children.append(match_kv_list(tokens))
 
-        if t.name() != 'COLON':
-            print("Error: expected ':'")
-            sys.exit(0)
+    return ('KVL', children)
 
-        print(t)
-        children.append(t)
+ 
+def match_kv_pair(tokens):
+    children = []
+    children.append(match_atom(next(tokens)))
+    children.append(match_colon(next(tokens)))
+    children.append(match_expr(tokens))
+    return ('KVP', children)
 
-        tokens = tokens[1:]
 
-        children.append(match_expr())
+def match_colon(token):
+    if token.name() != 'COLON':
+        print("Error: expected ':'")
+        sys.exit(0)
+    return ':'
 
-        # Otherwise, epsilon production
-        print('kv pair matched')
-        return ('KVP', children)
 
-    def match_atom():
-        print('matching atom')
-        nonlocal tokens
-
-        t = tokens[0]
-
-        if (t.name() == 'ATOM'):
-            print(t)
-            val = t
-            tokens = tokens[1:]
-            return t.value()
-
-    return match_expr()
+def match_atom(token):
+    if token.name() != 'ATOM':
+        print('Error: expected atom')
+        raise StopIteration
+    return ('ATOM', token.value())
