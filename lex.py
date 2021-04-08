@@ -21,7 +21,7 @@ class LPAREN(Token):
         return "LPAREN"
 
     def value(self):
-        return "(" 
+        return "("
 
 class RPAREN(Token):
     def name(self):
@@ -37,14 +37,6 @@ class COLON(Token):
 
     def value(self):
         return ":"
-
-
-class COMMA(Token):
-    def name(self):
-        return "COMMA"
-
-    def value(self):
-        return ","
 
 
 class ATOM(Token):
@@ -68,7 +60,7 @@ def tokenize(cs):
             c = cs.read(1)
             continue
 
-        reserved = ['(', ')', ':', ',']
+        reserved = ['(', ')', ':']
 
         if c == '(':
             c = cs.read(1)
@@ -82,15 +74,11 @@ def tokenize(cs):
             c = cs.read(1)
             yield COLON()
 
-        elif c == ',':
-            c = cs.read(1)
-            yield COMMA()
-
         else:
             n = cs.read(1)
-            while n not in reserved:
+            while n not in reserved and not n.isspace():
                 c = c + n
-                cs.read(1)
+                n = cs.read(1)
             yield ATOM(c)
             c = n
 
