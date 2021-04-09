@@ -5,7 +5,7 @@ Grammar:
 Expr = Atom |
        ( KVList )
 
-KVList = KVPair , KVList | Empty
+KVList = KVPair KVList | Empty
 
 KVPair = Atom: Expr
 '''
@@ -55,7 +55,10 @@ def parse(tokens):
     # No need for try/except: we'd just re-throw
     ts = Peekable(tokens)
     while True:
-        print(match_expr(ts))
+        try:
+            yield match_expr(ts)
+        except StopIteration:
+            return
 
 
 def match_expr(tokens):
@@ -90,13 +93,12 @@ def match_kv_list(tokens):
     children.append(match_kv_pair(tokens))
 
     t = peek(tokens)
-    if t.name() == 'COMMA':
-        children.append(next(tokens))
+    if t.name() != 'RPAREN':
         children.append(match_kv_list(tokens))
 
     return ('KVL', children)
 
- 
+
 def match_kv_pair(tokens):
     children = []
     children.append(match_atom(next(tokens)))

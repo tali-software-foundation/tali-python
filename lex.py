@@ -3,8 +3,6 @@ Lexical analysis transforms a stream of characters into a stream
 of tokens.
 '''
 
-import io
-
 class Token():
     def name(self):
         return None
@@ -81,5 +79,4 @@ def tokenize(cs):
                 n = cs.read(1)
             yield ATOM(c)
             c = n
-
     return
