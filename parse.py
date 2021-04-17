@@ -65,57 +65,56 @@ def match_expr(tokens):
     t = next(tokens)
 
     if t.name() == 'ATOM':
-        return ('ATOM', t.value())
+        return t.value()
     else:
-        children = []
-        children.append(match_lparen(t))
-        children.append(match_kv_list(tokens))
-        children.append(match_rparen(next(tokens)))
-        return ('EXPR', children)
+        match_lparen(t)
+        m = match_kv_map(tokens)
+        match_rparen(next(tokens))
+        return m
 
 
 def match_lparen(token):
     if token.name() != 'LPAREN':
         print('Error: expected "("')
         raise StopIteration
-    return '('
+    return None
 
 
 def match_rparen(token):
     if token.name() != 'RPAREN':
         print('Error: expected ")"')
         raise StopIteration
-    return ')'
+    return None
 
 
-def match_kv_list(tokens):
-    children = []
-    children.append(match_kv_pair(tokens))
+def match_kv_map(tokens):
+    m = {}
+    k, v = match_kv_pair(tokens)
+    m[k] = v
 
     t = peek(tokens)
     if t.name() != 'RPAREN':
-        children.append(match_kv_list(tokens))
+        m.update(match_kv_map(tokens))
 
-    return ('KVL', children)
+    return m
 
 
 def match_kv_pair(tokens):
-    children = []
-    children.append(match_atom(next(tokens)))
-    children.append(match_colon(next(tokens)))
-    children.append(match_expr(tokens))
-    return ('KVP', children)
+    k = match_atom(next(tokens))
+    match_colon(next(tokens))
+    v = match_expr(tokens)
+    return k, v
 
 
 def match_colon(token):
     if token.name() != 'COLON':
         print("Error: expected ':'")
         sys.exit(0)
-    return ':'
+    return None
 
 
 def match_atom(token):
     if token.name() != 'ATOM':
         print('Error: expected atom')
         raise StopIteration
-    return ('ATOM', token.value())
+    return token.value()
