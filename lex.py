@@ -21,12 +21,29 @@ class LPAREN(Token):
     def value(self):
         return "("
 
+
 class RPAREN(Token):
     def name(self):
         return "RPAREN"
 
     def value(self):
         return ")"
+
+
+class LSQUARE(Token):
+    def name(self):
+        return "LSQUARE"
+
+    def value(self):
+        return "["
+
+
+class RSQUARE(Token):
+    def name(self):
+        return "RSQUARE"
+
+    def value(self):
+        return "]"
 
 
 class COLON(Token):
@@ -58,7 +75,7 @@ def tokenize(cs):
             c = cs.read(1)
             continue
 
-        reserved = ['(', ')', ':']
+        reserved = ['(', ')', '[', ']', ':']
 
         if c == '(':
             c = cs.read(1)
@@ -67,6 +84,14 @@ def tokenize(cs):
         elif c == ')':
             c = cs.read(1)
             yield RPAREN()
+
+        elif c == '[':
+            c = cs.read(1)
+            yield LSQUARE()
+
+        elif c == ']':
+            c = cs.read(1)
+            yield RSQUARE()
 
         elif c == ':':
             c = cs.read(1)

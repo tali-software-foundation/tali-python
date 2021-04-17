@@ -1,13 +1,18 @@
+# TODO: This grammar does not provide for expressions as keys
+# Can probably substitute KVMap for Atom in KVPair.
 '''
 Parsing transforms a stream of tokens into a stream of parse trees.
 
 Grammar:
 Expr = Atom |
-       ( KVList )
+       ( KVMap ) |
+       [ ListMap ]
 
-KVList = KVPair KVList | Empty
+KVMap = KVPair KVMap | Empty
 
-KVPair = Atom: Expr
+KVPair = Atom : Expr
+
+ListMap = Expr ListMap | Empty
 '''
 import sys
 
@@ -66,10 +71,18 @@ def match_expr(tokens):
 
     if t.name() == 'ATOM':
         return t.value()
-    else:
+
+    elif t.name() == 'LPAREN':
         match_lparen(t)
         m = match_kv_map(tokens)
         match_rparen(next(tokens))
+        return m
+
+    else:
+        match_lsquare(t)
+        m = match_list_map(tokens, 0)
+        t = next(tokens)
+        match_rsquare(t)
         return m
 
 
@@ -83,6 +96,20 @@ def match_lparen(token):
 def match_rparen(token):
     if token.name() != 'RPAREN':
         print('Error: expected ")"')
+        raise StopIteration
+    return None
+
+
+def match_lsquare(token):
+    if token.name() != 'LSQUARE':
+        print('Error: expected "["')
+        raise StopIteration
+    return None
+
+
+def match_rsquare(token):
+    if token.name() != 'RSQUARE':
+        print('Error: expected "]"')
         raise StopIteration
     return None
 
@@ -104,6 +131,18 @@ def match_kv_pair(tokens):
     match_colon(next(tokens))
     v = match_expr(tokens)
     return k, v
+
+
+def match_list_map(tokens, i):
+    m = {}
+    v = match_expr(tokens)
+    m[i] = v
+
+    t = peek(tokens)
+    if t.name() != 'RSQUARE':
+        m.update(match_list_map(tokens, i+1))
+
+    return m
 
 
 def match_colon(token):
