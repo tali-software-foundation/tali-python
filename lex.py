@@ -69,15 +69,14 @@ def tokenize(cs):
     '''
     Given a character stream (file), yield a stream of tokens.
     '''
+    reserved = ['(', ')', '[', ']', ':']
+
     c = cs.read(1)
     while c != '':
         if c.isspace():
             c = cs.read(1)
-            continue
 
-        reserved = ['(', ')', '[', ']', ':']
-
-        if c == '(':
+        elif c == '(':
             c = cs.read(1)
             yield LPAREN()
 
