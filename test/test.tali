@@ -1,0 +1,27 @@
+(@: def
+ n: add-two
+ p: [a b]
+ f: (@: +
+     ls: [a, b]))
+
+(@: def
+ n: add-two
+ p: (0:a, 1:b, len:2)
+ f: (@: +
+     ls: (0:a, 1:b, len:2)))
+
+(@: concat
+ a: Γ
+ b: λ) => Γλ
+
+(@: Dog
+ name: doggyboi
+ breed: cuteboi
+ happy: always
+ price: invaluable)
+
+(@: Dog
+ name: doggyboi
+ breed: cuteboi
+ happy: always
+ price: invaluable)
