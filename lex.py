@@ -14,6 +14,22 @@ class Token():
         return f'({self.name()}, "{self.value()}")'
 
 
+class LBRACKET(Token):
+    def name(self):
+        return "LBRACKET"
+
+    def value(self):
+        return "{"
+
+
+class RBRACKET(Token):
+    def name(self):
+        return "RBRACKET"
+
+    def value(self):
+        return "}"
+
+
 class LPAREN(Token):
     def name(self):
         return "LPAREN"
@@ -54,6 +70,22 @@ class COLON(Token):
         return ":"
 
 
+class RAISE(Token):
+    def name(self):
+        return "RAISE"
+
+    def value(self):
+        return "↑"
+
+
+class COLLAPSE(Token):
+    def name(self):
+        return "COLLAPSE"
+
+    def value(self):
+        return "↓"
+
+
 class ATOM(Token):
     def __init__(self, val):
         self.val = val
@@ -69,10 +101,22 @@ def tokenize(cs):
     '''
     Given a character stream (file), yield a stream of tokens.
     '''
-    reserved = ['(', ')', '[', ']', ':']
+
+    # TODO: no reason this shouldn't be a set, right?
+    reserved = ['(', ')', '[', ']', '{', '}', ':']
 
     c = cs.read(1)
     while c != '':
+        if c == '"':
+            n = c
+            c = cs.read(1)
+            while c != '"':
+                n += c
+                c = cs.read(1)
+            n += c
+            c = cs.read(1)
+            yield ATOM(n)
+
         if c.isspace():
             c = cs.read(1)
 
@@ -92,9 +136,25 @@ def tokenize(cs):
             c = cs.read(1)
             yield RSQUARE()
 
+        elif c == '{':
+            c = cs.read(1)
+            yield LBRACKET()
+
+        elif c == '}':
+            c = cs.read(1)
+            yield RBRACKET()
+
         elif c == ':':
             c = cs.read(1)
             yield COLON()
+
+        elif c == '↑':
+            c = cs.read(1)
+            yield RAISE()
+
+        elif c == '↓':
+            c = cs.read(1)
+            yield COLLAPSE()
 
         else:
             n = cs.read(1)

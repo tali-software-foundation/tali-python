@@ -7,6 +7,7 @@ Grammar:
 Expr = Atom |
        ( KVMap ) |
        [ ListMap ]
+       { SetMap }
 
 KVMap = KVPair KVMap | Empty
 
@@ -15,8 +16,6 @@ KVPair = Atom : Expr
 ListMap = Expr ListMap | Empty
 '''
 import sys
-
-namespaces = {}
 
 class Peekable:
     '''
@@ -66,6 +65,18 @@ def parse(tokens):
             return
 
 
+class TaliSet():
+    '''
+    We need to store a parsed set so that it can be evaluated at
+    a later time (because we implement sets as hash maps where
+    the key is the same as the value, and you can't use dict or
+    sets as keys - we need to evaluate them first).
+    '''
+
+    def __init__(self, expressions):
+        self.expressions = expressions
+
+
 def match_expr(tokens):
     t = next(tokens)
 
@@ -74,16 +85,42 @@ def match_expr(tokens):
 
     elif t.name() == 'LPAREN':
         match_lparen(t)
+
+        # Handle the empty case 
+        t = peek(tokens)
+        if t.name() == 'RPAREN':
+            match_rparen(next(tokens))
+            return {}
+
         m = match_kv_map(tokens)
         match_rparen(next(tokens))
         return m
 
-    else:
+    elif t.name() == 'LSQUARE':
         match_lsquare(t)
+
+        # Handle the empty case 
+        t = peek(tokens)
+        if t.name() == 'RSQUARE':
+            match_rsquare(next(tokens))
+            return {'len': '0'}
+
         m = match_list_map(tokens, 0)
-        t = next(tokens)
-        match_rsquare(t)
+        match_rsquare(next(tokens))
         return m
+
+    else:
+        match_lbracket(t)
+
+        # Handle the empty case 
+        t = peek(tokens)
+        if t.name() == 'RBRACKET':
+            match_rbracket(next(tokens))
+            return TaliSet({})
+
+        m = match_set_map(tokens, 0)
+        match_rbracket(next(tokens))
+        return TaliSet(m)
 
 
 def match_lparen(token):
@@ -114,6 +151,20 @@ def match_rsquare(token):
     return None
 
 
+def match_lbracket(token):
+    if token.name() != 'LBRACKET':
+        print('Error: expected "{"')
+        raise StopIteration
+    return None
+
+
+def match_rbracket(token):
+    if token.name() != 'RBRACKET':
+        print('Error: expected "}"')
+        raise StopIteration
+    return None
+
+
 def match_kv_map(tokens):
     m = {}
     k, v = match_kv_pair(tokens)
@@ -140,15 +191,52 @@ def match_list_map(tokens, i):
 
     t = peek(tokens)
     if t.name() != 'RSQUARE':
-        m.update(match_list_map(tokens, i+1))
+        m.update(match_list_map(tokens, i + 1))
+
+    m['len'] = len(m) - 1
+    return m
+
+
+def match_set_map(tokens, i):
+    m = {}
+    v = match_expr(tokens)
+    m[i] = v
+
+    t = peek(tokens)
+    if t.name() != 'RBRACKET':
+        m.update(match_set_map(tokens, i + 1))
 
     return m
+
+
+# def match_set_map(tokens, i):
+#     '''
+#     This is tricky; the end-goal is to have a set of expressions,
+#     such that we have constant-time access as to whether the value
+#     is in the set.
+# 
+#     We don't know the value of an expression at parse time. That
+#     means we need to store it somehow for evaluation later.
+# 
+#     For now, we'll treat it the same as a list, but evaluate
+#     it differently in the interpreter.
+#     '''
+#     m = {}
+#     v = match_expr(tokens)
+#     m[i] = v
+# 
+#     t = peek(tokens)
+#     if t.name() != 'RBRACKET':
+#         m.update(match_list_map(tokens, i + 1))
+# 
+#     m['len'] = len(m)
+#     return m
 
 
 def match_colon(token):
     if token.name() != 'COLON':
         print("Error: expected ':'")
-        sys.exit(0)
+        raise StopIteration
     return None
 
 
