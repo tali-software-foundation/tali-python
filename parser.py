@@ -7,4 +7,5 @@ from lex import tokenize
 from parse import parse
 
 if __name__ == '__main__':
-    print(list(parse(tokenize(sys.stdin))))
+    for x in parse(tokenize(sys.stdin)):
+        print(str(x))

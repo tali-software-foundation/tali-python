@@ -102,8 +102,7 @@ def tokenize(cs):
     Given a character stream (file), yield a stream of tokens.
     '''
 
-    # TODO: no reason this shouldn't be a set, right?
-    reserved = ['(', ')', '[', ']', '{', '}', ':']
+    reserved = {'(', ')', '[', ']', '{', '}', ':', '↑', '↓'}
 
     c = cs.read(1)
     while c != '':

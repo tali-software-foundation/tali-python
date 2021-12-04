@@ -1,21 +1,212 @@
-# TODO: This grammar does not provide for expressions as keys
-# Can probably substitute KVMap for Atom in KVPair.
 '''
 Parsing transforms a stream of tokens into a stream of parse trees.
 
 Grammar:
+Prod = Meta Prod | Expr
+
 Expr = Atom |
        ( KVMap ) |
-       [ ListMap ]
+       [ ListMap ] |
        { SetMap }
 
 KVMap = KVPair KVMap | Empty
 
-KVPair = Atom : Expr
+KVPair = Prod : Prod
 
-ListMap = Expr ListMap | Empty
+ListMap = Prod ListMap | Empty
+
+SetMap = Prod SetMap | Empty
 '''
 import sys
+
+
+class ProdA():
+    """
+    First production constructor.
+    """
+    def __init__(self, meta, prod):
+        self.meta = meta
+        self.prod = prod
+
+    def __str__(self):
+        return "\n".join([
+            "ProdA",
+            "\n".join(["  " + x for x in str(self.meta).split("\n")]),
+            "\n".join(["  " + x for x in str(self.prod).split("\n")])
+        ])
+
+
+class ProdB():
+    """
+    Second production constructor.
+    """
+    def __init__(self, expr):
+        self.expr = expr
+
+    def __str__(self):
+        return "\n".join([
+            "ProdB",
+            "\n".join(["  " + x for x in str(self.expr).split("\n")])
+        ])
+
+
+class ExprA():
+    """
+    First expression constructor, representing an atom.
+    """
+    def __init__(self, atom):
+        self.atom = atom
+
+    def __str__(self):
+        return "\n".join([
+            "ExprA",
+            "\n".join(["  " + x for x in str(self.atom).split("\n")])
+        ])
+
+
+class ExprB():
+    """
+    Second expression constructor, representing a map.
+    """
+    def __init__(self, kv_map):
+        self.kv_map = kv_map
+
+    def __str__(self):
+        return "\n".join([
+            "ExprB",
+            "\n".join(["  " + x for x in str(self.kv_map).split("\n")])
+        ])
+
+
+class ExprC():
+    """
+    Third expression constructor, representing a list.
+    """
+    def __init__(self, list_map):
+        self.list_map = list_map
+
+    def __str__(self):
+        return "\n".join([
+            "ExprC",
+            "\n".join(["  " + x for x in str(self.list_map).split("\n")])
+        ])
+
+
+class ExprD():
+    """
+    Fourth expression constructor, representing a set.
+    """
+    def __init__(self, set_map):
+        self.set_map = set_map
+
+    def __str__(self):
+        return "\n".join([
+            "ExprD",
+            "\n".join(["  " + x for x in str(self.set_map).split("\n")])
+        ])
+
+
+class Atom():
+    def __init__(self, symbol):
+        self.symbol = symbol
+
+    def __str__(self):
+        return "\n".join([
+            "Atom",
+            "\n".join(["  " + x for x in str(self.symbol).split("\n")])
+        ])
+
+class KVPair():
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+    def __str__(self):
+        return "\n".join([
+            "KVPair",
+            "\n".join(["  " + x for x in str(self.key).split("\n")]),
+            "\n".join(["  " + x for x in str(self.value).split("\n")])
+        ])
+
+
+class KVMapA():
+    def __init__(self, pair, kv_map):
+        self.pair = pair
+        self.kv_map = kv_map
+
+    def __str__(self):
+        return "\n".join([
+            "KVMap",
+            "\n".join(["  " + x for x in str(self.pair).split("\n")]),
+            "\n".join(["  " + x for x in str(self.kv_map).split("\n")])
+        ])
+
+
+class KVMapB():
+    '''
+    Second KVMap constructor, representing the empty list.
+    '''
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return ""
+
+
+class ListMapA():
+    def __init__(self, expr, list_map):
+        self.expr = expr
+        self.list_map = list_map
+
+    def __str__(self):
+        return "\n".join([
+            "ListMapA",
+            "\n".join(["  " + x for x in str(self.expr).split("\n")]),
+            "\n".join(["  " + x for x in str(self.list_map).split("\n")])
+        ])
+
+
+class ListMapB():
+    '''
+    Second ListMap constructor, representing the empty list.
+    '''
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return ""
+
+
+class SetMapA():
+    '''
+    We need to store a parsed set so that it can be evaluated at
+    a later time (because we implement sets as hash maps where
+    the key is the same as the value, and you can't use dict or
+    sets as keys - we need to evaluate them first).
+    '''
+
+    def __init__(self, expr, set_map):
+        self.expr = expr
+        self.set_map = set_map
+
+    def __str__(self):
+        return "\n".join([
+            "SetMapA",
+            "\n".join(["  " + x for x in str(self.expr).split("\n")]),
+            "\n".join(["  " + x for x in str(self.set_map).split("\n")])
+        ])
+
+
+class SetMapB():
+    '''
+    Second SetMap constructor, representing the empty list.
+    '''
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return ""
+
 
 class Peekable:
     '''
@@ -39,6 +230,7 @@ class Peekable:
         """
         Peek at the next iterable and buffer it in.
         """
+        # TODO: eliminate try/catch here, and line 185?
         try:
             self.buffer.append(next(self.iterable))
         except StopIteration:
@@ -60,28 +252,25 @@ def parse(tokens):
     ts = Peekable(tokens)
     while True:
         try:
-            yield match_expr(ts)
+            yield match_prod(ts)
         except StopIteration:
             return
 
 
-class TaliSet():
-    '''
-    We need to store a parsed set so that it can be evaluated at
-    a later time (because we implement sets as hash maps where
-    the key is the same as the value, and you can't use dict or
-    sets as keys - we need to evaluate them first).
-    '''
-
-    def __init__(self, expressions):
-        self.expressions = expressions
+def match_prod(tokens):
+    t = peek(tokens)
+    if t is None: raise StopIteration
+    if t.name() in ['RAISE', 'COLLAPSE']:
+        next(tokens)
+        return ProdA(t.value(), match_prod(tokens))
+    return ProdB(match_expr(tokens))
 
 
 def match_expr(tokens):
     t = next(tokens)
 
     if t.name() == 'ATOM':
-        return t.value()
+        return ExprA(Atom(t.value()))
 
     elif t.name() == 'LPAREN':
         match_lparen(t)
@@ -90,11 +279,11 @@ def match_expr(tokens):
         t = peek(tokens)
         if t.name() == 'RPAREN':
             match_rparen(next(tokens))
-            return {}
+            return ExprB(KVMapB())
 
         m = match_kv_map(tokens)
         match_rparen(next(tokens))
-        return m
+        return ExprB(m)
 
     elif t.name() == 'LSQUARE':
         match_lsquare(t)
@@ -103,11 +292,11 @@ def match_expr(tokens):
         t = peek(tokens)
         if t.name() == 'RSQUARE':
             match_rsquare(next(tokens))
-            return {'len': '0'}
+            return ExprC(ListMapB())
 
-        m = match_list_map(tokens, 0)
+        m = match_list_map(tokens)
         match_rsquare(next(tokens))
-        return m
+        return ExprC(m)
 
     else:
         match_lbracket(t)
@@ -116,11 +305,11 @@ def match_expr(tokens):
         t = peek(tokens)
         if t.name() == 'RBRACKET':
             match_rbracket(next(tokens))
-            return TaliSet({})
+            return ExprD(SetMapB)
 
-        m = match_set_map(tokens, 0)
+        m = match_set_map(tokens)
         match_rbracket(next(tokens))
-        return TaliSet(m)
+        return ExprD(m)
 
 
 def match_lparen(token):
@@ -166,71 +355,34 @@ def match_rbracket(token):
 
 
 def match_kv_map(tokens):
-    m = {}
-    k, v = match_kv_pair(tokens)
-    m[k] = v
-
+    pair = match_kv_pair(tokens)
     t = peek(tokens)
     if t.name() != 'RPAREN':
-        m.update(match_kv_map(tokens))
-
-    return m
+        return KVMapA(pair, match_kv_map(tokens))
+    return KVMapA(pair, KVMapB())
 
 
 def match_kv_pair(tokens):
-    k = match_atom(next(tokens))
+    k = match_prod(tokens)
     match_colon(next(tokens))
-    v = match_expr(tokens)
-    return k, v
+    v = match_prod(tokens)
+    return KVPair(k, v)
 
 
-def match_list_map(tokens, i):
-    m = {}
-    v = match_expr(tokens)
-    m[i] = v
-
+def match_list_map(tokens):
+    v = match_prod(tokens)
     t = peek(tokens)
     if t.name() != 'RSQUARE':
-        m.update(match_list_map(tokens, i + 1))
-
-    m['len'] = len(m) - 1
-    return m
+        return ListMapA(v, match_list_map(tokens))
+    return ListMapA(v, ListMapB())
 
 
 def match_set_map(tokens, i):
-    m = {}
-    v = match_expr(tokens)
-    m[i] = v
-
+    v = match_prod(tokens)
     t = peek(tokens)
     if t.name() != 'RBRACKET':
-        m.update(match_set_map(tokens, i + 1))
-
-    return m
-
-
-# def match_set_map(tokens, i):
-#     '''
-#     This is tricky; the end-goal is to have a set of expressions,
-#     such that we have constant-time access as to whether the value
-#     is in the set.
-# 
-#     We don't know the value of an expression at parse time. That
-#     means we need to store it somehow for evaluation later.
-# 
-#     For now, we'll treat it the same as a list, but evaluate
-#     it differently in the interpreter.
-#     '''
-#     m = {}
-#     v = match_expr(tokens)
-#     m[i] = v
-# 
-#     t = peek(tokens)
-#     if t.name() != 'RBRACKET':
-#         m.update(match_list_map(tokens, i + 1))
-# 
-#     m['len'] = len(m)
-#     return m
+        return SetMapA(v, match_list_map(tokens))
+    return SetMapA(v, SetMapB())
 
 
 def match_colon(token):
